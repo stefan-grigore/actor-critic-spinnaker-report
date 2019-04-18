@@ -62,7 +62,7 @@
 
     One important aim of the project is to gain practical experience and an understanding of neuromorphic computing and spiking neural networks that would give an inshight into how the human brain works and how this knowledge can help us build more efficient software systems.
 
-    The report will detail the different approaches for managing, representing and extracting information from spiking neural networks, the ability of the model to learn and adapt, the performance of the model, limitations of the platform, advantages compared to other frameworks and future possible developments.
+    The report will detail the different approaches for managing, representing and extracting information from spiking neural networks, the ability of the model to learn and adapt, the performance of the model, limitations of the platform and possible future developments.
 
     \begin{suppfigure*}[b]
     \center
@@ -71,8 +71,9 @@
     \label{fig:firstLevel}
     \end{suppfigure*}
 
-
     \section{Background}
+
+    This section introduces the characteristics of the SpiNNaker board that was used to develop this project, the reinforcement learning model that was implemented and the game chosen to showcase this model.
 
     \subsection{The SpiNNaker system}
 
@@ -89,7 +90,7 @@
 
     The supporting software provided is the sPyNNaker Python library which enables the specification of neural models using the PyNN description language, and the run-time user interaction with the simulation.
 
-    \subsection{The Game}
+    \subsection{The game}
 
     The game chosen to showcase the learning model is called Super Meat Boy, a commercially available video game developed by independent studio Team Meat. The game belongs to the genre of platform games, where a player controlled character has to jump and climb between suspended platforms while avoiding obstacles in order to reach a goal.   
 
@@ -98,7 +99,7 @@
     \begin{figure*}[b]
     \center
     \includegraphics[width=140mm]{./neurons.png}
-    \caption{Neuron and myelinated axon, with signal flow from inputs at dendrites to outputs at axon terminals (University of Manchester, 2016)}
+    \caption{Neuron and myelinated axon, with signal flow from inputs at dendrites to outputs at axon terminals (SpiNNaker Manchester, 2016)}
     \label{fig:neurons}
     \end{figure*}
 
@@ -106,7 +107,7 @@
 
     \begin{suppfigure*}[b]
     \center
-    \includegraphics[width=155mm]{./neuronsWideLegend.png}
+    \includegraphics[width=147mm]{./neuronsWideLegend.png}
     \caption{Diagram showing how the synaptic weights between the state neurons and the actor neurons encode the policy of the agent.}
     \label{fig:stateActor}
     \end{suppfigure*}
@@ -119,17 +120,19 @@
     
     \section{Development}
 
+    This chapter covers the library used to implement the model and the biological analogues behind its components and behaviour. Furthermore, this section provides an in-depth description of the architecture of the model and the reasoning behind it. The architecture is inspired by a spiking implementation of an actor critic learning agent already described by Potjans et. al, 2009. Parallels are made to this source, while also presenting novel ideas for encoding the policy of the agent and adapting the techniques described in the paper to the SpiNNaker platform.
+
     \subsection{The sPyNNaker Python library}
 
     The project has been implemented by using the sPyNNaker Python library which enables the modelling of spiking neurons and neural networks, the simulation of those models and the run-time interaction with them (Rhodes et al., 2018).
 
     \subsubsection{Spiking neural networks}
 
-    Biological neurons have been observed to produce sharp increases in electrical potential across their membrane, lasting roughly 1 millisecond, commonly known as spikes. As charges are transferred across synapses from presynaptic neurons to a postsynaptic neuron, the potential of the postsynaptic neuron builds up until it releases the charge itself in the form of a spike that is sent forward in the network, where the process repeats.
+    Biological neurons have been observed to produce sharp increases in electrical potential across their membrane, lasting roughly 1 millisecond, commonly known as spikes. As charges are transferred across synapses from pre-synaptic neurons to a post-synaptic neuron, the potential of the post-synaptic neuron builds up until it releases the charge itself in the form of a spike that is sent forward in the network, where the process repeats.
 
-    The library uses the PyNN neural network description language to build the models of these neurons and the interactions between them. Neural populations are created, representing groups of neurons with similar properties. A number of standard neuron models are provided by PyNN, with one of the most basic of them being the Leaky Integrate and Fire (LIF) model. The LIF neuron is modeled as a resistor and capacitor connected in parallel. Charge is built in the capacitor as spikes are received, but leaks out through the resistor over time. If the voltage exceeds a threshold, the charge is released in the form of a spike which is transmitted to the connected postsynaptic neurons. Once a refractory period where the neuron is not allowed to spike again passes, the neuron resumes operation as before (Rhodes et al., 2018). 
+    The library uses the PyNN neural network description language to build the models of these neurons and the interactions between them. Neural populations are created, representing groups of neurons with similar properties. A number of standard neuron models are provided by PyNN, with one of the most basic of them being the Leaky Integrate and Fire (LIF) model. The LIF neuron is modeled as a resistor and capacitor connected in parallel. Charge is built in the capacitor as spikes are received, but leaks out through the resistor over time. If the voltage exceeds a threshold, the charge is released in the form of a spike which is transmitted to the connected post-synaptic neurons. Once a refractory period where the neuron is not allowed to spike again passes, the neuron resumes operation as before (Rhodes et al., 2018). 
     
-    Projections between these populations of neurons can be created, describing the connections between them and their type. The simulation is then loaded and ran on the SpiNNaker board.
+    Projections between these populations of neurons can be created, describing the connections between them and their type. The simulation is then loaded and ran on the SpiNNaker board by using an Ethernet interface.
 
     \subsubsection{Spike receivers and transmitters}
 
@@ -137,12 +140,11 @@
 
     The SpiNNaker machine can send or receive multicast packets describing spiking events (i.e. the ID of the neuron that fired). The transmitters and receivers communicate at UDP ports, and hardware such as sensors or actuators could potentially be connected to these ports for implementing real world applications. In the case of our game, spike receivers have been configured to execute button presses that move the agent across the level, while spike transmitters associated with the critic and environment networks alter the behaviour of the agent and trigger new moves.
 
-    When live I/O is used, a database of the network is created. Spikes could be injected during the simulation by either loading spiking callbacks onto the database before the start of the simulation, or by running the spike transmitters and receivers in a separate execution thread which would communicate with the simulation thread.
+    When live I/O is used, a database of the network is created. Spikes could be injected during the simulation by either loading spiking callbacks onto the database before the start of the simulation, or by running the spike transmitters in a separate execution thread which would communicate with the simulation thread.
 
     \subsubsection{Spike Timing Dependent Plasticity}
 
-    According to the Hebbian theory describing the learning mechanisms of biological systems, the strength of synaptic connections is suggested to be influenced by the causal relation between pre and postsynaptic neurons (Hebb, 1949).
-    Spike Timing Dependent Plasticity (STDP) is a biological process where the strengths of the synapses are modified depending on the timing between the spikes of two connected neurons. If a spike of a presynaptic neuron is followed closely by a postsynaptic spike, then it is considered that the presynaptic neuron directly contributed to the firing of the postsynaptic neuron, and the weight of the synapse is increased (potentiation). Conversely, if a postsynaptic spike comes before a presynaptic one, then it is considered that it was caused by an input from somewhere else in the network, and the synaptic weight between these neurons is decreased (depression) (Mikaitis et al., 2018).
+    According to the Hebbian theory describing the learning mechanisms of biological systems, the strength of synaptic connections is suggested to be influenced by the causal relation between pre and post-synaptic neurons (Hebb, 1949). Experiments that became available in the 1990s showed that changes in synaptic strengths are related to the timing of the spikes of pre- and post-synaptic neurons (Markram et al., 1997). This relationship between the relative timing of the neuron spikes and the magnitude of the synaptic changes became known as Spike Timing Dependent Plasticity (STDP). According to this model, if a spike of a pre-synaptic neuron is followed closely by a post-synaptic spike, then it is considered that the pre-synaptic neuron directly contributed to the firing of the post-synaptic neuron, and the weight of the synapse is increased (potentiation). Conversely, if a post-synaptic spike comes before a pre-synaptic one, then it is considered that it was caused by an input from somewhere else in the network, and the synaptic weight between these neurons is decreased (depression) (Mikaitis et al., 2018).
 
     This mechanism is considered to be the basis of learning and memory in the human brain. A model of this process can be instantiated for projections between neuron populations by using the sPyNNaker library.
 
@@ -151,7 +153,7 @@
     The actor-critic model can be viewed through the framework of control theory. \textit{'The behavior of the controlled system is influenced
     by disturbances, and feedback from the controlled system to the controller provides information on which the control signals can depend'} (Barto, 1995).
 
-    Fig. \ref{fig:potjansArchitecture} shows a diagram adapted from Sutton \& Barto, 1998, of an actor-critic architecture implemented by Potjans et al., 2009. The actor supplies an action to the environment based on its policy. As a result of the action, a new state is entered and the environment transmits the new state information to the actor and critic. The critic evaluates whether the new state is better or worse and emits an error signal used to update both the value function and the policy.
+    Figure \ref{fig:potjansArchitecture} shows a diagram adapted from Sutton \& Barto, 1998, of an actor-critic architecture implemented by Potjans et al., 2009. The actor supplies an action to the environment based on its policy. As a result of the action, a new state is entered and the environment transmits the new state information to the actor and critic. The critic evaluates whether the new state is better or worse and emits an error signal used to update both the value function and the policy.
 
     \begin{figure}[ht!]
     \centering
@@ -168,14 +170,14 @@
 
     \subsubsection{The agent}
 
-    \textit{'A learning agent must be able to sense the state of its environment to some extent and must be able to take actions that affect the state.'} (Sutton et al., 1998). There are 4 meaningful actions that the agent could take in the case of our game: walking right, left, jumping right or jumping left. Furthermore, we need to keep track of the action that should be taken at each step in time (i.e. for each state). These actions across steps are represented by two populations of LIF neurons, a presynaptic state population and a postsynaptic actor population, illustrated in Fig. \ref{fig:stateActor} as blue and yellow respectively.
+    \textit{'A learning agent must be able to sense the state of its environment to some extent and must be able to take actions that affect the state.'} (Sutton et al., 1998). There are 4 meaningful actions that the agent could take in the case of our game: walking right, left, jumping right or jumping left. Furthermore, we need to keep track of the action that should be taken at each step in time (i.e. for each state). These actions across steps are represented by two populations of LIF neurons, a pre-synaptic state population and a post-synaptic actor population, illustrated in Figure \ref{fig:stateActor} as blue and yellow respectively.
     
-    The neurons in each population are connected one-to-one by synapses implementing the STDP model. The populations are split so that the index of each neuron describes the action and step that they correspond to. For example, for \textit{n} possible actions, the modulo and quotinent of the division by \textit{n} of the index of the neuron that fired would give the action index and step index respectively. So, in our example, if we have 4 possible actions and the agent gives out a sequence of neurons that spiked such as [0, 6, 8, 12], this would translate into [walk right, jump right, walk right, walk right] which would be executed in that order. Furthermore, neurons representing actions at each step are connected to their analogues for future steps (the connections are seen as the vertical lines in Fig. \ref{fig:stateActor}), mimicking the behaviour where actions executed in the present will increase the probability that the same actions will be executed in the future. In the case of the first level of the game, these additional connections improved the probability of the agent solving the level in under 10 learning iterations from X\% to Y\%.
+    The neurons in each population are connected one-to-one by synapses implementing the STDP model. The populations are split so that the index of each neuron describes the action and step that they correspond to. For example, for \textit{n} possible actions, the modulo and quotinent of the division by \textit{n} of the index of the neuron that fired would give the action index and step index respectively. So, in our example, if we have 4 possible actions and the agent gives out a sequence of neurons that spiked such as [0, 6, 8, 12], this would translate into [walk right, jump right, walk right, walk right] which would be executed in that order. Furthermore, neurons representing actions at each step are connected to their analogues for future steps (the connections are seen as the vertical lines in Figure \ref{fig:stateActor}), mimicking the behaviour where actions executed in the present will increase the probability that the same actions will be executed in the future. In the case of the first level of the game, these additional connections improved the probability of the agent solving the level in under 10 learning iterations from X\% to Y\%.
 
     \textit{'The synaptic weights between the state neurons and the actor neurons encode the policy of the agent'} (Potjans et al., 2009). Each action at each step has a weight associated with it, implemented by the STDP synapses between the state and actor populations. For any particular step, the action with the greatest weight is retrieved from the network by using first-spike coding, where the neuron with the greatest synaptic weight is the most likely to fire first (VanRullen, 2005). \textit{The stronger the synaptic weights between the activated state and a given actor
     neuron, the greater the probability that it will fire first. Whichever actor
     neuron fires first in response to the activation of a state is interpreted by
-    the environment as the chosen action.'} (Potjans et al., 2009). To achieve this, a population of spike injector neurons is connected to the state population, sending spikes to all neurons for each step (as seen in Fig. \ref{fig:firstSpike}), while the spike receivers wait for the first spike generated by the actor neurons that will translate into an action to be executed on the environment.
+    the environment as the chosen action.'} (Potjans et al., 2009). To achieve this, a population of spike injector neurons is connected to the state population, sending spikes to all neurons for each step (as seen in Figure \ref{fig:firstSpike}), while the spike receivers wait for the first spike generated by the actor neurons that will translate into an action to be executed on the environment.
 
     \begin{figure}[ht!]
     \centering
@@ -186,7 +188,7 @@
 
     With these techniques, no other data structure is used in order to store the information about the policy of the agent, which gives a biologically accurate model for how memory might work in the brain by using synaptic plasticity.
 
-    Fig. \ref{fig:potjansImplementation} shows a diagram of the neuronal implementation of the actor-critic architecture given by Potjans et al., 2009, by which this implementation was inspired.
+    Figure \ref{fig:potjansImplementation} shows a diagram of the neuronal implementation of the actor-critic architecture given by Potjans et al., 2009, by which this implementation was inspired.
 
     \begin{figure}[ht!]
     \centering
@@ -207,7 +209,7 @@
 
     Actions are grouped into classes depending on whether they produce a similar result (i.e. they take the character in the same direction), so that in the exploration phase the agent tries a random action from a class different from the one that was unsuccesfully executed previously. For the first level of the game, this method proved to raise the probability that the agent will solve it in under 10 learning iterations from X\% to Y\%.
 
-    Fig. \ref{fig:learning} shows the synaptic weights of 2 possible actions (walking right versus jumping right) that the agent could take as its second move, recorded during a simulation on the first level of the game. In this case, the agent chose to walk right at the second step in the first learning episode. At the end of it, the critic observed that the agent got closer to the goal then it previously was, so it rewarded this move and the synaptic weight increased. For the second learning episode, however, this choice turned out to lead to the agent not making progress, so it has been punished, the weight becoming lower than the option of jumping right at the second step. Over time, this option stabilised as the optimal choice, and we can see that the weights of those two actions begin to diverge.
+    Figure \ref{fig:learning} shows the synaptic weights of 2 possible actions (walking right versus jumping right) that the agent could take as its second move, recorded during a simulation on the first level of the game. In this case, the agent chose to walk right at the second step in the first learning episode. At the end of it, the critic observed that the agent got closer to the goal then it previously was, so it rewarded this move and the synaptic weight increased. For the second learning episode, however, this choice turned out to lead to the agent not making progress, so it has been punished, the weight becoming lower than the option of jumping right at the second step. Over time, this option stabilised as the optimal choice, and we can see that the weights of those two actions begin to diverge.
 
     The actual values of the weights are not as important as the relative relationship between them. For the actor-critic model, we are only interested in the action with the greatest weight, regardless of its value.
 
@@ -218,65 +220,44 @@
     \label{fig:learning}
     \end{figure}
 
+    \section{Experimentation}
+
+    This section describes some of the behaviour and limitations of the SpiNNaker platform, and the progression of the ways in which the project was implemented, explaining their drawbacks and alternatives. The different options for customising the parameters of the network are explained and explored, presenting the results and reasoning behind them.
+
     \subsection{Limitations of the SpiNNaker platform}
 
     The \textit{run()} method of the SpiNNaker simulation is a blocking operation, and methods such as \textit{getWeights()} cannot be executed until the simulation has been completed. This is because the synaptic weights represent a large amount of data compared to the sparse spiking events, and accessing it could potentially flood the network and likely destroy the simulation (Stokes, 2016).
 
-    It is possible however to call \textit{run()} a number of times, extracting data between each run and passing it to an external simulation (University of Manchester, 2016). An initial version of this project would have each learning episode in a separate call of the \textit{run()} method, with simulations being started for each of them. The matrix of synaptic weights would thus be extracted between runs, and the actions with the greatest weights could be selected. The resulting spikes given by the critic and the environment would then be put on the event database as callbacks which would be executed during the run of the next learning episode.
+    It is possible however to call \textit{run()} a number of times, extracting data between each run and passing it to an external simulation (SpiNNaker Manchester, 2016). An initial version of this project would have each learning episode in a separate call of the \textit{run()} method, with simulations being started for each of them. The matrix of synaptic weights would thus be extracted between runs, and the actions with the greatest weights could be selected. The resulting spikes given by the critic and the environment would then be put on the event database as callbacks which would be executed during the run of the next learning episode.
     
     With the current implementation of sPyNNaker, if the memory requirements for a simulation cannot be met, it is split furthermore into steps where it is executed for a shorter amount of time, paused, processed and then resumed repeatedly until it completes. This method, however, repeatedly instantiates the callbacks which were intended to be only ran once during the simulation, executing them at each step, a hidden behavior that might be an error in the current implementation.
     
-    Starting a simulation is a relatively lengthy process, taking around 10 seconds. A later version of the project would run the model in a separate execution thread to the thread running the simulation. The critic and environment would now inject spikes into the network during the simulation with the use of spike transmitters instead of callbacks added before the simulation starts. For the weights, we are not interested in the actual values as much as we are interested in which synapse has the greatest value relative to the others. First spike coding (VanRullen, 2005), suggests that the stronger the synaptic weight for a given postsynaptic neuron, the greater the probability that it will fire first. By injecting spikes to groups of neurons corresponding to actions over steps and recording the indices of the first neurons that spike, we can determine the synapses with the greatest weights without interrupting the run, removing the great overhead of repeatedly initialising simulations.
+    Starting a simulation is a relatively lengthy process, taking around 10 seconds. A later version of the project would run the model in a separate execution thread to the thread running the simulation. The critic and environment would now inject spikes into the network during the simulation with the use of spike transmitters instead of callbacks. For the weights, we are not interested in the actual values as much as we are interested in which synapse has the greatest value relative to the others. First spike coding (VanRullen, 2005), suggests that the stronger the synaptic weight for a given post-synaptic neuron, the greater the probability that it will fire first. By injecting spikes to groups of neurons corresponding to actions over steps and recording the indices of the first neurons that spike, we can determine the synapses with the greatest weights without interrupting the run, removing the great overhead of repeatedly initialising simulations.
 
-    \subsubsection{The SpiNNaker Live Event Database}
+    \subsection{Exploring multithreading for actions}
 
-    Explanation of how spike events are stored in the database which allows external recievers and senders to figure out which neurons have spiked. Explanation of the implementation of callbacks to store events at the beginning of the simulation. Explanation of how the simulation is set up, issues such as the inability of retreiving data such as the synaptic weights while the simulation is running, and how long simulations need to be split up into multiple runs which might affect the callbacks set before the simulation.
+    One early version of the implementation had separate threads for each of the possible actions, which would operate independently and concurrently. This method would prove to not be viable as the effects of the separate actions being executed concurrently would not be consistent over learning episodes due to variations in the latencies of these threads. This would hinder the ability of the model to reliably exploit rewarded policies learned in previous episodes. Furthermore, this method would not scale for a greater number of actions. The final implementation abandons this version in favour of executing actions sequentially in one thread, which improved the results and the consistency of the model's behaviour across learning episodes.
 
-    \subsubsection{Multithreading}
+    \subsection{Exploring different neuron properties}
 
-    Explanation of the use of separate threads for the simulation and external receivers/transmitters, and how it is preferred over setting all actions through callbacks before the simulation. Explanation of how it enables concurrent actions by setting separate threads for each action.
+    Figure \ref{fig:spikeTraces} shows how voltage traces are sampled to compute STDP weight updates depending on the order of spiking events. Potentiation is calculated at each post-synaptic spike by sampling the pre-synaptic trace (green circles) to obtain a measure of recent pre-synaptic activity, while depression is done by sampling the pre-synaptic trace (blue circles) (Mikaitis et al., 2018).
 
-    \subsection{Learning}
+    \begin{figure*}
+    \center
+    \includegraphics[width=147mm]{./spikeTraces.png}
+    \caption{Calculation of weight updates using pair-based STDP traces. After Morrison et al. (2008)}
+    \label{fig:spikeTraces}
+    \end{figure*}
 
-    \subsubsection{The Leaky Integrate and Fire model}
+    PyNN provides a number of parameters that can be customised to modify the properties of neurons and their connections in order to have control over the behaviour and timings of the processes shown in Figure \ref{fig:spikeTraces}. In the case of the LIF model, among other properties are the capacitance of the neuron, the refractory period and the excitatory input current decay time-constant. In the case of the projections describing the STDP synapses between neurons, we can modify elements such as the exponential decay of the size of the weight update for both the potentiation and the depression of neurons.
 
-    Explanation of the concept of the LIF neuron, the properties modeled by the SpiNNaker platform and what effect they have on the behaviour of the model. Parallels to the biological model, some illustrations.
-
-    \subsubsection{Spike Timing Dependent Plasticity}
-
-    Add some graphs of how the weights are altered over the simulation of this application.
-
-    \section{Performance}
-
-    \subsection{Speed}
-
-    For the task of the first level illustrated in Figure 1, the model converges to a solution in an average of 11 trials ($\sigma$ = 1), taking 2 minutes and 30 seconds ($\sigma$ = 3s) to complete the level. The game was not simulated or sped up, so these are real time benchmarks.
-
-    The speed at which the spikes propagate across the network from the moment they are emitted by the spike transmitter to the moment they are received by the spike receiver is 5 milliseconds.
-
-    \subsection{Scalability}
-
-    The model can solve increasingly more difficult levels such as the one illustrated in Figure 3 in 25 trials and a total of around 7 minutes.
-
-    \begin{figure}[ht!]
-    \centering
-    \includegraphics[width=155mm]{./bladeLevel.png}
-    \caption{More complex level, with an increased number of platfroms and where sawblades placed on each platform \textit{'kill'} the player and bring him back to the starting point \label{overflow}}
-    \end{figure}
-
-    The number of neurons required to solve the levels is a function of the number of learning episodes, times the number of possible actions. We require this number of neurons for the pre-synaptic and post-synaptic populations of the agent, the populations corresponding to the neruons triggering the first spike action, and the population corresponding to the network of the critic.
+    For our model, because there is some latency between the spikes sent by the critic in a specific order to either depress or potentiate a synapse, the current decay of the neurons has been decreased to accomodate this and give time for the spikes to arrive and modify the weights. In the case of Figure \ref{fig:spikeTraces}, this would show as a slower slope for the decay of the synaptic traces.
     
-    \begin{center}
-        \textit{Number of neurons $=$ 4 $\times$ number of trials $\times$ number of possible moves}
-    \end{center}
-
-    As the agent only has 4 possible moves, so to complete the first level for example it would require 4 $\times$ 11 $\times$ 4 $=$ 176 neurons. For level in Figure 3, the required number of trials rises to 25, resulting in 4 $\times$ 25 $\times$ 4 $=$ 400 neurons.
-
-    \subsection{Sensitivity}
-
-    The most important variable that the model could be sensitive to is the configuration of the actions. Each action corresponds to a button press, however holding the button for a different amount of time would result in widely different actions. Currently, each action (button press) is held for 0.5 seconds. The model can successfully solve the level in under 12 moves 70\% of the time with this configuration. Increasing the duration that the moves are held by up to 30\%, however, does not affect the performance of the model, demonstrating that it is resilient to imprecisions or arbitrary configurations in the actions.
+    Furthermore, to stop pre-synaptic neurons from generating multiple successive post-synaptic spikes, the refractory period of the post-synaptic population has been increased in the final implementation of the project. This gives more consistent results in the case of generating first-spike events which are needed to decode the policy of the agent.
 
     \section{Future development}
+
+    This chapter presents various opportunities for further improving the model. These methods have been explored but not implemented in the final version of the project either due to their high complexity or due to the relatively small effect that they would have towards the overall effectiveness of the model.
 
     \subsection{Improving the critic}
 
@@ -303,6 +284,41 @@
     \subsection{Connecting hardware}
 
     Explanation of how hardware could listen to the UDP ports used by the platform to transmit and receive information and execute actions.
+
+    \section{Evaluation}
+
+    \subsection{Performance}
+
+    For the task of the first level illustrated in Figure 1, the model converges to a solution in an average of 11 trials ($\sigma$ = 1), taking 2 minutes and 30 seconds ($\sigma$ = 3s) to complete the level. The game was not simulated or sped up, so these are real time benchmarks.
+
+    \subsection{Latency}
+
+    To decode an action, the speed at which the first spike event propagates across the network from the moment it is emitted by the spike transmitter to the moment it is recorded by the spike receiver is around 5 to 7 milliseconds. With one population per step (i.e. per row of state neurons in Figure \ref{fig:stateActor}), all first spike triggers needed to decode the actions could be sent at the same time in parallel, decoding all the actions for all the steps in 5 to 7 milliseconds. Each SpiNNaker core can only model 1 population however, so scalability for the number of steps needed to solve a level (i.e. the number of moves required) is limited by the number of cores that the platform running the simulation has.
+
+    \subsection{Scalability}
+
+    The number of neurons required to solve a level is a function of the number of steps that the agent needs to take in order to solve it, times the number of possible actions (i.e. the number of rows times the number of columns in Figure \ref{fig:stateActor}), resulting in the following formula:
+
+    \begin{center}
+        \textit{N = S $\times$ A $\times$ 4 + S}
+    \end{center}
+
+    Where \textit{N} is the number of neurons required to solve a level, \textit{S} is the number of steps required to solve that level and \textit{A} is the number of possible actions the agent can take at each step. We need \textit{S $\times$ A} neurons for the state and actor populations and the populations corresponding to spike injector neurons for the critic and evironment (resulting in 4 populations). To decode the actions, a spike injector neuron is connected to the state neurons at each step, this population resulting in an additional \textit{S} number of neurons.
+
+    Furthermore, the agent only executes a move for 1 additional step per learning episode (i.e. it executes 1 move in the first learning episode, 2 moves in the second one and so on) meaning that the number of learning episodes required to solve a level will always be equal to the number of required steps. In the case of the first level, the model was able to solve it in 12 steps by using its 4 available actions, resulting in \textit{12 $\times$ 4 $\times$ 4 + 12 = 204} neurons used.
+
+    The model, however, can solve increasingly more difficult levels such as the one illustrated in Figure \ref{fig:complexLevel}, where only 25 learning episodes over the course of around 7 minutes were needed. This results in \textit{25 $\times$ 4 $\times$ 4 + 25 = 425} neurons required for this level. In addition to the platforms that the character needs to navigate (and \textit{"wall jump"}) around, this level also introduces sawblades, where by touching them the character is \textit{"killed"} and sent back to the starting point at the bottom of the level. Despite of this, the model handles this level quite well.
+
+    \begin{figure}[ht!]
+    \centering
+    \includegraphics[width=84mm]{./bladeLevelLong.png}
+    \caption{More complex level, with an increased number of platfroms and where sawblades placed on each platform \textit{'kill'} the player and bring him back to the starting point}
+    \label{fig:complexLevel}
+    \end{figure}
+
+    \subsection{Sensitivity}
+
+    The most important variable that the model could be sensitive to is the configuration of the actions. Each action corresponds to a button press, however holding the button for a different amount of time would result in a widely different action. Some sort of heuristic needs to be taken into consideration when configuring the actions, for example what type of actions humans take while playing the game and for how long are these actions held. Currently, each action (i.e. button press) is held for 0.5 seconds. The model can successfully solve the first level in under 12 moves 70\% of the time with this configuration. Increasing the duration that the moves are held by with up to 30\%, however, does not affect the performance of the model, demonstrating that it is resilient to imprecisions or arbitrary configurations in the actions.
 
     \section{Project management and planning}
 
@@ -345,10 +361,16 @@
     Maass, W. (1996) \textit{Networks of Spiking Neurons: The Third Generation of Neural Network Models} \\[-3pt]
 
     \noindent
+    Markram, H., Lubke, J., Frotscher, M., Sakmann, B. (1997) \textit{Regulation of synaptic efficacy by coincidence of postsynaptic APs and EPSP } \\[-3pt]
+
+    \noindent
     Mead, C. A. (1990) \textit{Neuromorphic electronic systems} \\[-3pt]
 
     \noindent
     Mikaitis, M., Pineda García, G., Knight, J. C., Furber, S. B. (2018).  \textit{Neuromodulated Synaptic Plasticity on the SpiNNaker Neuromorphic System} \\[-3pt]
+
+    \noindent
+    Morrison, A., Diesmann, M., Gerstner, W. (2008) \textit{Phenomenological models of synaptic plasticity based on spike timing} \\[-3pt]
 
     \noindent
     Potjans, W., Morrison, A., Diesmann, M. (2009) \textit{A spiking neural network model of an actor-critic learning agent} \\[-3pt]
@@ -361,6 +383,9 @@
     Sarpeshkar, R. (1998) \textit{Analog Versus Digital: Extrapolating from Electronics to Neurobiology} \\[-3pt]
 
     \noindent
+    SpiNNaker Manchester (2016) \textit{Sixth SpiNNaker workshop lab manuals} \\[-3pt]
+
+    \noindent
     Stokes, A. B. (2016) \textit{Weight updates during simulation - SpiNNaker Users Group} \\[-3pt]
 
     \noindent
@@ -368,9 +393,6 @@
 
     \noindent
     Thorndike, E. L. (1898) \textit{Animal intelligence: An experimental study of the associative processes in animals} \\[-3pt]
-
-    \noindent
-    University of Manchester (2016) \textit{Sixth SpiNNaker workshop lab manuals} \\[-3pt]
 
     \noindent
     VanRullen, R., Guyonneau, R, Thorpe, S. J. (2005) \textit{Spike times make sense} \\[-3pt]
