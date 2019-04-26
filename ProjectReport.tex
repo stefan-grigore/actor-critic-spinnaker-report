@@ -86,11 +86,11 @@
 
     \subsection{The SpiNNaker system}
 
-    SpiNNaker (Furber et al., 2014) is a massively parallel, event-based neuromorphic computing platform composed of low-power ARM processors which enable the real-time simulation of spiking neural networks. Some of the initial versions of neurons used for machine learning applications are the fully digital, first generation perceptron model and the second generation sigmoidal neural net. The advantage of a spiking neuron over these models is that it describes the output of a biological neuron more accurately by incorporating the concept of time for encoding information (Maass, 1996). The application presented in this report has been implemented by using a 4 node SpiNN-3 board. Each node is composed of 18 processing cores, one elected at start-up as a Monitor Core, 16 used to support the application and one left for fault tolerance and manufacturing yield enhancing purposes (Furber et al., 2013). Each core can model around 1000 neurons, such as the leaky integrate and fire model, which simulates the loss of potential that occurs at the membrane level of the biological neuron.
+    SpiNNaker (Furber et al., 2014) is a massively parallel, event-based neuromorphic computing platform composed of low-power ARM processors which enable the real-time simulation of spiking neural networks. Some of the initial versions of neurons used for machine learning applications are the fully digital, first generation perceptron model and the second generation sigmoidal neural net. The advantage of a spiking neuron over these models is that it describes the output of a biological neuron more accurately by incorporating the concept of time for encoding information (Maass, 1996). The application presented in this report has been implemented by using a 4 node SpiNN-3 board. Each node is composed of 18 processing cores, one elected at start-up as a Monitor Core, 16 used to support the application and one left for fault tolerance and manufacturing yield enhancing purposes (Furber et al., 2013). Each core can model around 1000 neurons, such as the leaky integrate and fire model, which simulates the loss of potential that occurs at the membrane level of the biological neuron (Furber et al., 2013).
 
     The supporting software provided is the sPyNNaker Python library which enables the specification of neural models using the PyNN description language, and the run-time user interaction with the simulation.
 
-    The Python programs produced can be either run on a local board such as the one shown in Figure \ref{fig:spinnBoard} or they can be submitted as jobs to a remote SpiNNaker server that would execute them and give back results. The latency of the communication with such a server, however, would not be suitable for the real-time interaction that is done with the system for this project, so it has been implemented by using the local SpiNN-3 board which is connected to the computer hosting the Python application via an Ethernet interface.
+    The Python programs produced can be either run on a local board such as the one shown in Figure \ref{fig:spinnBoard} or they can be submitted as jobs to a remote SpiNNaker server that would execute them and give back the results. The latency of the communication with such a server, however, would not be suitable for the real-time interaction that is done with the system for this project, so it has been implemented by using a local SpiNN-3 board which is connected to a computer hosting the Python application via an Ethernet interface.
 
     \begin{figure}[ht!]
     \centering
@@ -127,7 +127,9 @@
 
     Biological neurons have been observed to produce sharp increases in electrical potential across their membrane, lasting roughly 1 millisecond, commonly known as spikes. As spikes are transferred across synapses from pre-synaptic neurons to a post-synaptic one, the potential of the post-synaptic neuron builds up until it releases the charge itself in the form of a spike that is sent forward in the network, where the process repeats.
 
-    The library uses the PyNN neural network description language to build the models of these neurons and the interactions between them. Neural populations are created, representing groups of neurons with similar properties. A number of standard neuron models are provided by PyNN, with one of the most basic of them being the Leaky Integrate and Fire (LIF) model. The LIF neuron is modelled as a resistor and capacitor connected in parallel. Charge is built in the capacitor as spikes are received but leaks out through the resistor over time. If the voltage exceeds a threshold, it is released in the form of a spike which is transmitted to the connected post-synaptic neurons. Once a refractory period where the neuron is not allowed to spike again passes, it resumes operation as before (Rhodes et al., 2018).
+    The library uses the PyNN neural network description language to build the models of these neurons and the interactions between them. Neural populations are created, representing groups of neurons with similar properties. A number of standard neuron models are provided by PyNN, with one of the most basic of them being the Leaky Integrate and Fire (LIF) model. 
+    
+    The LIF neuron is modelled as a resistor and capacitor connected in parallel. Charge is built in the capacitor as spikes are received but leaks out through the resistor over time. If the voltage exceeds a threshold, it is released in the form of a spike which is transmitted to the connected post-synaptic neurons. Once a refractory period where the neuron is not allowed to spike again passes, it resumes operation as before (Rhodes et al., 2018).
     
     Projections between these populations of neurons can be created, describing the connections between them and their type. The simulation is then loaded and ran on the SpiNNaker board by using the Ethernet interface.
 
@@ -195,7 +197,7 @@
     \setcounter{figure}{6}
 
     \newpage
-    With these techniques, no other data structure is used to store the information about the policy of the agent, which gives a biologically accurate model for how memory might work in the brain by using synaptic plasticity.
+    With these techniques, no other data structure is used to store the information about the policy of the agent, which gives a biologically plausible model for how memory might work in the brain by using synaptic plasticity.
 
     Figure \ref{fig:potjansImplementation} shows a diagram of the neuronal implementation of the actor-critic architecture given by Potjans et al., 2009, by which this implementation was inspired. In that version, \textit{'the agent interacts with the environment, which for the purposes of this work is implemented purely algorithmically'} (Potjans et al., 2009).
 
@@ -210,7 +212,7 @@
 
     \subsubsection{The environment}
 
-    To model the state, as in the \textit{'signal conveying to the agent some sense of "how the environment is" at a particular time'} (Sutton et al., 1998), a Computer Vision system is used. An external Python library which uses template matching takes a template of how the agent and goal look like and identifies their coordinates in a screenshot of the running game. Multiple screenshots are taken and cross-referenced in order to increase the reliability of the system, handling side effects such as the character unexpectedly changing its location after the learning episode has ended (for example, when it did not finish falling off a ledge) or the library failing to reliably detect the positions of the character or the goal. There is a population of spike injectors corresponding to the environment which is connected to the state neurons described in the previous section. Depending on where the agent is at the end of a particular episode, the environment sends to the agent a signal corresponding to the next action that will get it directly to the goal, which will then be the action executed in the next learning episode. At the same time, the environment sends the information to the critic which compares the results of the previous learning episode to the results of the current one.
+    To model the state, as in the \textit{'signal conveying to the agent some sense of "how the environment is" at a particular time'} (Sutton et al., 1998), a Computer Vision system is used. An external Python library which uses template matching finds the location of the character and of the goal by sliding their template images over a screenshot of the running game (OpenCV, 2019). To increase the reliability of the library for this project, multiple screenshots are taken and cross-referenced in order to handle side effects such as the character unexpectedly changing its location after a learning episode has ended (for example, when it did not finish falling off a ledge). There is a population of spike injectors corresponding to the environment which is connected to the state neurons described in the previous section. Depending on where the character is at the end of a particular episode, the environment sends to the agent a signal corresponding to the next action that will get it directly to the goal, which will then be the action executed in the next learning episode. At the same time, the environment sends to the critic the information regarding the position of the character and of the goal.
 
     \subsubsection{The critic}
 
@@ -226,7 +228,7 @@
     
     \begin{figure}[ht!]
     \centering
-    \includegraphics[width=84mm]{./learning.png}
+    \includegraphics[width=85mm]{./learning.png}
     \caption{Weight of 2 possible actions for a given step across learning episodes}
     \label{fig:learning}
     \end{figure}
@@ -240,7 +242,7 @@
     \label{fig:history}
     \end{suppfigure*}
     
-    In this case, the agent chose to walk right at the second step in the first learning episode. At the end of it, the critic observed that the agent got closer to the goal then it previously was, so it rewarded this move and the synaptic weight increased. For the second learning episode, however, this choice turned out to eventually lead to the agent not making progress, so it has been punished, the weight becoming lower than the option of jumping right at the second step. Over time, this option stabilised as the optimal choice, and we can see that the weights of those two actions begin to diverge.
+    In this case, the agent chose to walk right at the second step in the first learning episode. At the end of it, the critic observed that the agent got closer to the goal than it previously was, so it rewarded this move and the synaptic weight increased. For the second learning episode, however, this choice turned out to eventually lead to the agent not making progress, so it has been punished, the weight becoming lower than the option of jumping right at the second step. Over time, this option stabilised as the optimal choice, and we can see that the weights of those two actions begin to diverge.
 
     The actual values of the weights are not as important as the relative relationship between them. For the actor-critic model, we are only interested in the action with the greatest weight, regardless of its value.
 
@@ -272,7 +274,7 @@
 
     It is possible however to call \textit{run()} a number of times, extracting data between each run and passing it to an external simulation (SpiNNaker Manchester, 2016). An initial version of this project would have each learning episode in a separate call of the \textit{run()} method, with simulations being started for each of them. The matrix of synaptic weights would thus be extracted between runs, and the actions with the greatest weights could be selected. The resulting spikes given by the critic and the environment would then be put on the event database as callbacks which would be executed during the run of the next learning episode.
     
-    With the current implementation of sPyNNaker, if the memory requirements for a simulation cannot be met, it is split furthermore into steps where it is executed for a shorter amount of time, paused, processed and then resumed repeatedly until it completes. This method, however, repeatedly instantiates the callbacks which were intended to be only run once during the simulation, executing them at each step, a hidden behaviour that might be an error in the current implementation.
+    With the current implementation of sPyNNaker, if the memory requirements for a simulation cannot be met, it is split furthermore into steps where it is executed for a shorter amount of time, paused, processed and then resumed repeatedly until it completes. This method, however, repeatedly instantiates the callbacks which were intended to be only run once during the simulation, executing them at each step, a hidden behaviour that might be an error in the current implementation of the library.
     
     Starting a simulation is a relatively lengthy process, taking around 10 seconds. A later version of the project would run the model in a separate execution thread to the thread running the simulation. The critic and environment would now inject spikes into the network during the simulation with the use of spike transmitters instead of callbacks. For the weights, we are not interested in the actual values as much as we are interested in which synapse has the greatest value relative to the others. First-spike coding (VanRullen, 2005), suggests that the stronger the synaptic weight for a given post-synaptic neuron, the greater the probability that it will fire first. By injecting spikes to groups of neurons corresponding to actions over steps and recording the indices of the first neurons that spike, we can determine the synapses with the greatest weights without interrupting the run, removing the great overhead of repeatedly initialising simulations.
 
@@ -288,35 +290,11 @@
 
     \subsection{Exploring multithreading for actions}
 
-    One early version of the implementation had separate threads for each of the possible actions, which would operate independently and concurrently. This method would prove to not be viable as the effects of the separate actions being executed concurrently would not be consistent over learning episodes due to variations in the latencies of these threads. This would hinder the ability of the model to reliably exploit rewarded policies learned in previous episodes. Furthermore, this method would not scale for a greater number of actions. The final implementation abandons this version in favour of executing actions sequentially in one thread, which improved the results and the consistency of the model's behaviour across learning episodes.
+    One early version of the implementation had separate threads for each of the possible actions, which would operate independently and concurrently. This method would prove to not be viable as the effects of the separate actions being executed concurrently would not be consistent over learning episodes due to variations in the latencies of these threads. This would hinder the ability of the model to reliably exploit rewarded policies learned in previous episodes. Furthermore, this method would not scale for a greater number of actions. 
+    
+    The final implementation abandons this version in favour of executing actions sequentially in one thread, which improved the results and the consistency of the model's behaviour across learning episodes.
     
     For the multithreaded version initially, however, more actions were implemented, corresponding to individual button presses and releases. These were later merged and modified to result in the final, more effective actions presented earlier (walk right, left, jump right and jump left). Figure \ref{fig:diag}, recorded from an early version of the multithreaded implementation, shows the differences between the model running randomly and the model running with the input from the environment via the Computer Vision implementation for the first level of the game. On the raster plots of spiking events, we can see that for the model running randomly, the actions are arbitrary, and in the game they do not produce any meaningful results. For the model running with the input from the environment through the Computer Vision implementation, however, we can see that the actions are much more structured and consistent, which translates into genuinely effective moves in the game. The model, however, gets stuck in a loop corresponding to a local optimum of the specific level, the path of which is blocked by an obstacle. We can see this in the repetition of the pattern in the raster plot. To combat this, the concept of a critic has to be introduced in order to detect the lack of progress over the iterations of the agent and adjust its policy accordingly.
-
-    \section{Future development}
-
-    This chapter presents various ideas and opportunities for further improving the model. These methods have been explored but not implemented in the final version of the project, either due to their complexity or due to the relatively small effect that they would have on the overall effectiveness of the model.
-
-    \subsection{Improving the critic}
-
-    \subsubsection{Detecting unproductive moves}
-
-    It is possible that the agent solves the level in a sub-optimal way, for example by executing moves at one point that do not contribute to the solution (such as going left and right repeatedly thus cancelling those actions out). An \textit{'adaptive critic'} (Barto, 1995) would improve its evaluative feedback by maximising a \textit{'weighted sum of all future primary reinforcement values'} (Barto, 1995). The sensory input of the critic, however, would need to be rich enough so that it can extract from its history predictions for situations that have similar \textit{"futures"}.
-
-    \subsubsection{Preserving the optimal sections of the policy}
-
-    Currently, the backpropagation of the critic's feedback could alter moves in the past that were otherwise optimal. To combat this, the critic could identify synapses corresponding to sections of the agent's policy that are optimal and \textit{"freeze"} them so that they are not altered and will always be exploited by the agent.
-
-    \subsubsection{Varying the critic feedback frequency}
-
-    Currently, the critic interrupts the activity of the agent uniformly across the level in order to evaluate its policy and modify it. The critic's feedback, however, might not be always needed during the agent's activity on easier sections of the level (for example on long platforms where the only suitable action is going in one direction, which the behaviour of the agent will execute optimally without the need of the critic's feedback). To make the model more efficient and have the agent converge to a solution faster, the critic could identify the parts of the level where it thinks the agent would require more frequent evaluation, increase the rate at which it will give feedback for that portion and decrease it for sections that seem straightforward for the agent. To achieve this, the critic could look at the history of how easily the agent made progress over previous sections of the level, and identify sections with similar properties that it will adapt its feedback frequency for in the future.
-
-    \subsubsection{Mapping reoccurring actions to a single neuron}
-
-    Some sequences of actions reoccur over the course of the agent's activity, but they require a neuron each. To optimise memory, the critic could identify those reoccurring actions and map the whole sequence to a single neuron, so that the whole routine would be triggered by that neuron.
-
-    \subsection{Connecting hardware}
-
-    All the spiking events that are produced by the system or injected into it are transmitted and received at UDP ports. In the case of this project, the Computer Vision implementation senses the environment and injects corresponding spikes into the network, while the network produces spikes that are recorded and translated into button presses. Rather than having a Computer Vision system recording the game, we could attach actual environmental sensors (such as proximity detectors, cameras etc.) that communicate to the network, placed on a robot trying to solve a real-world puzzle. Instead of spikes producing virtual button presses, the spike receivers could be connected to actuators that execute actions in the environment (for example through servomotors).
 
     \section{Evaluation}
 
@@ -326,7 +304,7 @@
     
     The goal of the project is to produce a model that would solve the levels in a small number of learning iterations, for a total amount of time that would be short enough that this method could be applied to real-world applications where either time resources for training are limited, or where software cannot accurately simulate the real world behaviour of the system for training.
 
-    For the task of the first level illustrated in Figure \ref{fig:firstLevel}, across a couple of hundreds of tests, the model converges to a solution in an average of 11 learning episodes ($\sigma$ = 1.5), taking around 2 minutes and 6 seconds ($\sigma$ = 24s) to successfully pass each test. The game was not simulated or sped up, so these are benchmarks of the behaviour of the model in real time. For this level, the model has been configured to have enough neurons to execute a maximum of 12 steps, and it successfully finds the solution to the level before it runs out of neurons around 80\% of the time when executing the tests.
+    For the task of the first level illustrated in Figure \ref{fig:firstLevel}, across a couple of hundreds of tests, the model converges to a solution in an average of 9.5 learning episodes ($\sigma$ = 1.5), taking around 2 minutes and 6 seconds ($\sigma$ = 24s) to successfully pass each test. The game was not simulated or sped up, so these are benchmarks of the behaviour of the model in real time. For this level, the model has been configured to have enough neurons to execute a maximum of 12 steps, and it successfully finds the solution to the level before it runs out of neurons around 80\% of the time when executing the tests.
 
     \subsection{Latency}
 
@@ -340,15 +318,17 @@
         \textit{N = S $\times$ A $\times$ 4 + S}
     \end{center}
 
-    Where \textit{N} is the number of neurons required to solve a level, \textit{S} is the number of steps required to solve that level and \textit{A} is the number of possible actions the agent could choose from at each step. We need \textit{S $\times$ A} neurons for the state and actor populations and the populations corresponding to spike injector neurons for the critic and environment (resulting in 4 populations). To decode the actions, a spike injector neuron is connected to the state neurons at each step, this population resulting in an additional \textit{S} number of neurons.
+    Where \textit{N} is the number of neurons required to solve a level, \textit{S} is the number of steps required to solve that level and \textit{A} is the number of possible actions that the agent could choose from at each step. We need \textit{S $\times$ A} neurons for the state and actor populations and the populations corresponding to spike injector neurons for the critic and environment (resulting in 4 populations). 
+    
+    To decode the actions, a spike injector neuron is connected to the state neurons at each step, this population resulting in an additional \textit{S} number of neurons.
 
-    Furthermore, the agent only executes a move for 1 additional step per learning episode (i.e. it executes 1 move in the first learning episode, 2 moves in the second one and so on) meaning that the number of learning episodes required to solve a level will always be equal to the number of required steps. In the case of the first level, the model was able to solve it in 12 steps by using its 4 available actions, resulting in \textit{12 $\times$ 4 $\times$ 4 + 12 = 204} neurons used.
+    Furthermore, the agent only executes a move for 1 additional step per learning episode (i.e. it executes 1 move in the first learning episode, 2 moves in the second one and so on) meaning that the number of learning episodes required to solve a level will always be equal to the number of required steps. In the case of the first level, the model was able to solve it in an average of 9.5 steps by using its 4 available actions, resulting in an average of \textit{9.5 $\times$ 4 $\times$ 4 + 9.5 = 161.5} neurons used.
 
     The model, however, can solve increasingly more difficult levels such as the one illustrated in Figure \ref{fig:complexLevel}, where only 25 learning episodes over the course of around 7 minutes were needed. This results in \textit{25 $\times$ 4 $\times$ 4 + 25 = 425} neurons required for this level. In addition to the platforms that the character needs to navigate (and \textit{"wall jump"}) around, this level also introduces sawblades, whereby touching them the character is \textit{"killed"} and sent back to the starting point at the bottom of the level. Despite this, the model handles this level quite well.
 
     \begin{figure}[ht!]
     \centering
-    \includegraphics[width=78mm]{./bladeLevelLong.png}
+    \includegraphics[width=80mm]{./bladeLevelLong.png}
     \caption{More complex level, with an increased number of platfroms and where sawblades placed on each platform \textit{"kill"} the player and bring him back to the starting point}
     \label{fig:complexLevel}
     \end{figure}
@@ -367,7 +347,7 @@
 
     These resources were used and explored to produce pieces of the functionality that lead to the ideas and implementations used in the project. The process followed the model of iterative and incremental development, where functionality was gradually added and improved, slowly discovering the direction of the project over the course of implementation.
 
-    Throughout the entire development, the model has been run on the game and evaluated, and functionality has been gradually added to reach the goal of reliably and efficiently solving the tasks. Initially, the model was run with random inputs, with unsuccessful results towards solving the game. A basic implementation of an environmental input via a Computer Vision system was added, producing more consistent behaviour that however still did not solve the game. Research into learning methods has been made, finding the Actor-Critic learning model which could be suitable for a biologically accurate implementation of the project. The critic has been added to the network, altering the behaviour of the previously implemented agent, with promising results that managed to solve the game. The rest of the development time was then spent on exploring ways to improve this model to solve the game more reliably and to enable it to solve increasingly harder levels.
+    Throughout the entire development, the model has been run on the game and evaluated, and functionality has been gradually added to reach the goal of reliably and efficiently solving the tasks. Initially, the model was run with random inputs, with unsuccessful results towards solving the game. A basic implementation of an environmental input via a Computer Vision system was added, producing more consistent behaviour that however still did not solve the game. Research into learning methods has been made, finding the Actor-Critic learning model which could be suitable for a biologically plausible implementation of the project. The critic has been added to the network, altering the behaviour of the previously implemented agent, with promising results that managed to solve the game. The rest of the development time was then spent on exploring ways to improve this model to solve the game more reliably and to enable it to solve increasingly harder levels.
 
     The aim was to produce a working, demonstrable version of the project by the end of the first 3 months of development, which was achieved in the form of the model trying to solve the game with the use of the environmental input. The following month was used to introduce and implement the critic, and the rest of development time (around 2 months) was used to improve the model, experiment with different architectures and evaluate it.
 
@@ -382,6 +362,36 @@
     The project provides a scalable and reliable model for reinforcement learning, its concepts and implementation possibly being able to be used to improve the development and biological accuracy of energy efficient technologies such as robotic prosthetics or mobile robotics able to solve complex, faster than real-time tasks. The biological accuracy of the implementation could also be the basis for interfacing with the nervous system, possibly training the model through a combination of neural inputs from the user and inputs from sensors monitoring the environment.
 
     In conclusion, the project has been a success, both regarding the results generated and the breadth of new concepts, techniques and tools learned.
+
+    \section{Future development}
+
+    This chapter presents various ideas and opportunities for further improving the model. These methods have been explored but not implemented in the final version of the project, either due to their complexity or due to the relatively small effect that they would have on the overall effectiveness of the model.
+
+    \subsection{Improving the critic}
+
+    \subsubsection{Detecting unproductive moves}
+
+    It is possible that the agent solves the level in a sub-optimal way, for example by executing moves at one point that do not contribute to the solution (such as going left and right repeatedly thus cancelling those actions out). An \textit{'adaptive critic'} (Barto, 1995) would improve its evaluative feedback by maximising a \textit{'weighted sum of all future primary reinforcement values'} (Barto, 1995). The sensory input of the critic, however, would need to be rich enough so that it can extract from its history predictions for situations that have similar \textit{"futures"}.
+
+    \subsubsection{Preserving the optimal sections of the policy}
+
+    Currently, the backpropagation of the critic's feedback could alter moves in the past that were otherwise optimal. To combat this, the critic could identify synapses corresponding to sections of the agent's policy that are optimal and \textit{"freeze"} them so that they are not altered and will always be exploited by the agent.
+
+    \subsubsection{Varying the critic feedback frequency}
+
+    Currently, the critic interrupts the activity of the agent uniformly across the level in order to evaluate its policy and modify it. The critic's feedback, however, might not be always needed during the agent's activity on easier sections of the level (for example on long platforms where the only suitable action is going in one direction, which the behaviour of the agent will execute optimally without the need of the critic's feedback). 
+    
+    To make the model more efficient and have the agent converge to a solution faster, the critic could identify the parts of the level where it thinks the agent would require more frequent evaluation, increase the rate at which it will give feedback for that portion and decrease it for sections that seem straightforward for the agent. To achieve this, the critic could look at the history of how easily the agent made progress over previous sections of the level, and identify sections with similar properties that it will adapt its feedback frequency for in the future.
+
+    \subsubsection{Mapping reoccurring actions to a single neuron}
+
+    Some sequences of actions reoccur over the course of the agent's activity, but they require a neuron each. To optimise memory, the critic could identify those reoccurring actions and map the whole sequence to a single neuron, so that the whole routine would be triggered by that neuron.
+
+    \subsection{Connecting hardware}
+
+    All the spiking events that are produced by the system or injected into it are transmitted and received at UDP ports. In the case of this project, the Computer Vision implementation senses the environment and injects corresponding spikes into the network, while the network produces spikes that are recorded and translated into button presses.
+    
+    Rather than having a Computer Vision system recording the game, we could attach actual environmental sensors (such as proximity detectors, cameras etc.) that communicate to the network, placed on a robot trying to solve a real-world puzzle. Instead of spikes producing virtual button presses, the spike receivers could be connected to actuators that execute actions in the environment (for example through servomotors).
 
     \section*{Acknowledgements}
     \addcontentsline{toc}{section}{\protect\numberline{}Acknowledgements}
@@ -412,7 +422,7 @@
                 Execute another random action
             Else:
                 Execute action given by the environment for the last step
-            Have critic get input from the environment
+            Have the critic get input from the environment
             If better than the previous episode:
                 Repeat (for each command in policy, descending):
                     Potentiate the synapse corresponding to the command
@@ -472,6 +482,9 @@
 
     \noindent
     Morrison, A., Diesmann, M., Gerstner, W. (2008) \textit{Phenomenological models of synaptic plasticity based on spike timing} \\[-3pt]
+
+    \noindent
+    OpenCV (2019) \textit{Template Matching [accessed April 2019]} \\[-3pt]
 
     \noindent
     Potjans, W., Morrison, A., Diesmann, M. (2009) \textit{A spiking neural network model of an actor-critic learning agent} \\[-3pt]
